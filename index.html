@@ -5,6 +5,7 @@ body {
   width: 100vw;
   height: 100vh;
   margin: 0;
+  text-align:center;
 }
 #container {
   width: 100%;
@@ -13,40 +14,89 @@ body {
 </style>
 
 <body>
-<h1>DEMO</h1>
+
+<br><br><br><br>
+<p id="content">Gowalla Dataset</p>
+<br><br>
+<input type="text" class = "div" style="width: 45%" id="numberOfUsers" placeholder="Search number of nodes, range from 1-10000, e.g.500. The default value is 5.">
+<button onclick="drawGraph()">submit</button>
+
+
 <div id="container"></div>
 <script src="https://unpkg.com/deck.gl@latest/deckgl.min.js"></script>
 <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.44.1/mapbox-gl.js'></script>
 <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.44.1/mapbox-gl.css' rel='stylesheet' />
 <script>
+var userNum = 5;
+function drawGraph(){
+  userNum = document.getElementById("numberOfUsers").value;
+  document.getElementById('container').innerHTML = "";
+  var request = new XMLHttpRequest();
+  request.open('GET', 'http://localhost:9000/users?num='+userNum, false);
+  request.send(null);
+  if (request.status === 200) {
+    var jsonUser = JSON.parse(request.responseText);
+    console.log("sending users request");
+    //console.log(json)
+
+    request = new XMLHttpRequest();
+    request.open('GET', 'http://localhost:9000/friendships?num='+userNum, false);
+    request.send(null);
+    if (request.status === 200) {
+      var jsonFriendship = JSON.parse(request.responseText);
+      console.log("sending friendships request");
+      //console.log(jsonUser);
+      //console.log(jsonFriendship);
+      var data = [];
+      var UserLen = jsonUser.length-1;
+      for (var i = 0; i < jsonFriendship.length; i++) {
+        //console.log(jsonFriendship[i][0]);
+        //console.log(jsonFriendship[i][1]);
+        if (jsonFriendship[i][0]>UserLen) {
+          jsonFriendship[i][0] = UserLen;
+        }
+        if (jsonFriendship[i][1]>UserLen) {
+          jsonFriendship[i][1] = UserLen;
+        }
+        data.push({
+                "source":[jsonUser[jsonFriendship[i][0]].longitude,jsonUser[jsonFriendship[i][0]].latitude,0],
+                "target":[jsonUser[jsonFriendship[i][1]].longitude,jsonUser[jsonFriendship[i][1]].latitude,0]
+        })
+      }
 
 
-new deck.DeckGL({
-  	mapboxApiAccessToken: '<your-mapbox-token>',
-    mapStyle: 'mapbox://styles/mapbox/light-v9',
-    longitude: -100,
-    latitude: 40.7,
-    zoom: 3,
-    maxZoom: 15,
-    pitch: 30,
-    bearing: 30,
-  layers: [
+      //console.log(JSON.stringify(data));
 
-    new deck.ArcLayer({
-      id: 'arc',
-      data: 'https://raw.githubusercontent.com/YiSun19/deck.index/master/arc.json',
-      getSourcePosition: d => d.source,
-      getTargetPosition: d => d.target,
-      //getSourceColor: d => (d.gain > 0 ? inFlowColors : outFlowColors)[d.quantile],
-      //getTargetColor: d => (d.gain > 0 ? outFlowColors : inFlowColors)[d.quantile],
-      getSourceColor: [12, 44, 132],
-      getTargetColor: [177, 0, 38],
-      gettrokeWidth: 4
-    })
+  new deck.DeckGL({
+  	 mapboxApiAccessToken: '<your-mapbox-token>',
+      mapStyle: 'mapbox://styles/mapbox/light-v9',
+      container: document.getElementById('container'),
+      longitude: 20,
+      latitude: 10,
+      zoom: 1,
+      maxZoom: 50,
+      pitch: 0,
+      bearing: 0, //turn the graph to specific angle
+    layers: [
 
-  ]
-});
+      new deck.ArcLayer({
+        id: 'arc',
+        //data: 'https://raw.githubusercontent.com/YiSun19/deck.index/master/arc.json',
+        data: data,
+        getSourcePosition: d => d.source,
+        getTargetPosition: d => d.target,
+        //getSourceColor: d => (d.gain > 0 ? inFlowColors : outFlowColors)[d.quantile],
+        //getTargetColor: d => (d.gain > 0 ? outFlowColors : inFlowColors)[d.quantile],
+        getSourceColor: [12, 44, 132],
+        getTargetColor: [177, 0, 38],
+        gettrokeWidth: 4
+      })
 
+    ]
+  });
+}
+}
+}
 </script> 
 
 </body>
